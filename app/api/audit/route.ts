@@ -1,0 +1,3 @@
+import {member,admin,db,respond,failure} from '@/lib/server';
+import {scopeSchema} from '@/lib/validation';
+export async function GET(req:Request){try{const u=await member();admin(u);const url=new URL(req.url);const scope=scopeSchema.parse(url.searchParams.get('scope')??'live');const before=Math.max(0,Number(url.searchParams.get('before')??Number.MAX_SAFE_INTEGER));const rows=await db().prepare('SELECT a.seq,a.entity,a.entity_id,a.payload,a.created_at,m.name AS actor FROM audit a LEFT JOIN members m ON m.user_id=a.actor WHERE a.scope=? AND a.seq<? ORDER BY a.seq DESC LIMIT 100').bind(scope,before).all();return respond({rows:rows.results,nextBefore:rows.results.length===100?rows.results[99].seq:null});}catch(e){return failure(e);}}

@@ -1,0 +1,5 @@
+import { member, admin, db, body, writeOrigin, hash, receipt, commitChange, scopePhoto, respond, failure } from '@/lib/server';
+import {siteSchema} from '@/lib/validation';
+export async function POST(req:Request){try{writeOrigin(req);const u=await member();admin(u);const b=siteSchema.parse(await body(req));const digest=await hash(b);const old=await receipt(b.operationId,digest,u.id);if(old)return respond(old);await scopePhoto(b.photoKey,b.scope);const id=b.id??crypto.randomUUID();
+ const stmt=b.id?db().prepare('UPDATE sites SET name=?,owner=?,address=?,color=?,photo_key=?,active=?,version=version+1 WHERE id=? AND scope=? AND version=?').bind(b.name,b.owner,b.address,b.color,b.photoKey,b.active,id,b.scope,b.version??-1):db().prepare('INSERT INTO sites (id,scope,name,owner,address,color,photo_key,active) VALUES (?,?,?,?,?,?,?,?)').bind(id,b.scope,b.name,b.owner,b.address,b.color,b.photoKey,b.active);
+ return respond(await commitChange([stmt],b,u,digest,'site',id,b));}catch(e){return failure(e);}}

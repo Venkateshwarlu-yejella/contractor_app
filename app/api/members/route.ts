@@ -1,0 +1,6 @@
+import {member,admin,db,body,writeOrigin,hash,receipt,commitChange,respond,failure,HttpError} from '@/lib/server';
+import {memberSchema} from '@/lib/validation';
+export async function POST(req:Request){try{writeOrigin(req);const u=await member();admin(u);const b=memberSchema.parse(await body(req));const digest=await hash(b);const replay=await receipt(b.operationId,digest,u.id);if(replay)return respond(replay);
+ const existing=await db().prepare('SELECT user_id FROM members WHERE email=?').bind(b.email).first<{user_id:string|null}>();const owner=await db().prepare("SELECT owner_id FROM settings WHERE id='family'").first<{owner_id:string}>();if(existing?.user_id===owner?.owner_id&&(b.role!=='admin'||!b.active))throw new HttpError(400,'The workspace owner must remain an active administrator.');
+ const stmt=db().prepare('INSERT INTO members (email,name,role,active,created_at) VALUES (?,?,?,?,?) ON CONFLICT(email) DO UPDATE SET name=excluded.name,role=excluded.role,active=excluded.active').bind(b.email,b.name,b.role,b.active,new Date().toISOString());
+ return respond(await commitChange([stmt],b,u,digest,'member',b.email,{email:b.email,name:b.name,role:b.role,active:b.active}));}catch(e){return failure(e);}}

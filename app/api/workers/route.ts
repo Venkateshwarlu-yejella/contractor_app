@@ -1,0 +1,6 @@
+import { member, admin, db, body, writeOrigin, hash, receipt, commitChange, scopePhoto, scopeWorker, respond, failure, HttpError } from '@/lib/server';
+import {workerSchema} from '@/lib/validation';
+export async function POST(req:Request){try{writeOrigin(req);const u=await member();admin(u);const b=workerSchema.parse(await body(req));const digest=await hash(b);const old=await receipt(b.operationId,digest,u.id);if(old)return respond(old);await scopePhoto(b.photoKey,b.scope);const id=b.id??crypto.randomUUID();
+ if(b.id){const current=await scopeWorker(id,b.scope,false);if(current.openingBalance!==b.openingBalance)throw new HttpError(400,'Opening balance is fixed after creation; keep the original amount.');}
+ const stmt=b.id?db().prepare('UPDATE workers SET name=?,phone=?,daily_wage=?,photo_key=?,active=?,version=version+1 WHERE id=? AND scope=? AND version=?').bind(b.name,b.phone,b.dailyWage,b.photoKey,b.active,id,b.scope,b.version??-1):db().prepare('INSERT INTO workers (id,scope,name,phone,daily_wage,opening_balance,photo_key,active) VALUES (?,?,?,?,?,?,?,?)').bind(id,b.scope,b.name,b.phone,b.dailyWage,b.openingBalance,b.photoKey,b.active);
+ return respond(await commitChange([stmt],b,u,digest,'worker',id,b));}catch(e){return failure(e);}}

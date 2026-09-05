@@ -1,0 +1,3 @@
+import {member,db,bucket,failure,HttpError} from '@/lib/server';
+import {idSchema} from '@/lib/validation';
+export async function GET(_req:Request,{params}:{params:Promise<{id:string}>}){try{await member();const {id}=await params;idSchema.parse(id);if(!await db().prepare('SELECT id FROM media WHERE id=?').bind(id).first())throw new HttpError(404,'Photo not found.');const object=await bucket().get(id);if(!object)throw new HttpError(404,'Photo not found.');return new Response(object.body,{headers:{'Content-Type':object.httpMetadata?.contentType??'image/jpeg','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});}catch(e){return failure(e);}}

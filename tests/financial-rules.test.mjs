@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { businessDate, workerBalance, halfWages, reportRows, csvCell } from '../lib/domain.ts';
+const worker={id:'w1',scope:'live',dailyWage:90000,openingBalance:50000};
+const day={workerId:'w1',date:'2026-09-01',amSiteId:'site-a',pmSiteId:'site-b',amWage:45000,pmWage:45000};
+test('wages less advances and payments, with an opening balance and a reversal',()=>{assert.deepEqual(workerBalance(worker,[day],[{workerId:'w1',amount:20000,kind:'advance'},{workerId:'w1',amount:70000,kind:'payment'},{workerId:'w1',amount:70000,kind:'reversal'}]),{earned:90000,paid:20000,balance:120000});});
+test('a prepaid worker shows a negative balance rather than a second advance deduction',()=>{assert.equal(workerBalance({...worker,openingBalance:0},[day],[{workerId:'w1',amount:150000,kind:'advance'}]).balance,-60000);});
+test('changing wages or moving existing slots does not rewrite the saved wage',()=>{assert.deepEqual(halfWages(120000,day,'site-c','site-c'),{amWage:45000,pmWage:45000});assert.deepEqual(halfWages(120000,undefined,'site-c',null),{amWage:60000,pmWage:0});});
+test('split days allocate half a day and half a wage to each site',()=>{const rows=reportRows({sites:[{id:'site-a'},{id:'site-b'}],attendance:[day]},'2026-09-01','2026-09-01');assert.equal(rows[0].days,.5);assert.equal(rows[0].cost,45000);assert.equal(rows[1].cost,45000);assert.equal(rows.reduce((s,r)=>s+r.cost,0),90000);});
+test('India midnight is independent of the phone or server time zone',()=>{assert.equal(businessDate(new Date('2026-09-01T18:31:00Z')),'2026-09-02');assert.equal(businessDate(new Date('2026-09-01T18:29:00Z')),'2026-09-01');});
+test('CSV prevents a worker name from becoming a spreadsheet formula',()=>{assert.equal(csvCell('=HYPERLINK("example")'),'"\'=HYPERLINK(""example"")"');});

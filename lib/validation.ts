@@ -1,0 +1,12 @@
+import { z } from 'zod';
+export const scopeSchema=z.enum(['demo','live']);
+export const idSchema=z.string().min(1).max(100).regex(/^[a-zA-Z0-9_-]+$/);
+export const dateSchema=z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(s=>{const d=new Date(s+'T12:00:00Z');return !isNaN(+d)&&d.toISOString().slice(0,10)===s;},'Choose a valid date.');
+const base={operationId:z.string().uuid(),scope:scopeSchema};
+const nullableId=idSchema.nullable();
+export const workerSchema=z.object({...base,id:idSchema.optional(),version:z.number().int().nonnegative().optional(),name:z.string().trim().min(1).max(100),phone:z.string().trim().max(30).regex(/^[+\d\s()-]*$/),dailyWage:z.number().int().positive().max(10000000).multipleOf(100),openingBalance:z.number().int().min(-100000000).max(100000000).default(0),photoKey:nullableId,active:z.number().int().min(0).max(1).default(1)}).strict().refine(b=>b.scope==='demo'||!!b.photoKey,{message:'Add a clear worker photo before saving.',path:['photoKey']});
+export const siteSchema=z.object({...base,id:idSchema.optional(),version:z.number().int().nonnegative().optional(),name:z.string().trim().min(1).max(100),owner:z.string().trim().min(1).max(100),address:z.string().trim().min(1).max(300),color:z.enum(['orange','blue','purple','green']),photoKey:nullableId,active:z.number().int().min(0).max(1).default(1)}).strict();
+export const attendanceSchema=z.object({...base,workerId:idSchema,date:dateSchema,amSiteId:nullableId,pmSiteId:nullableId,version:z.number().int().nonnegative(),reason:z.string().trim().max(300).default('')}).strict();
+export const paymentSchema=z.object({...base,workerId:idSchema,amount:z.number().int().positive().max(100000000),kind:z.enum(['payment','advance']),date:dateSchema,method:z.enum(['cash','upi','bank']),notes:z.string().trim().max(300).default('')}).strict();
+export const reversalSchema=z.object({...base,paymentId:idSchema,reason:z.string().trim().min(3).max(300)}).strict();
+export const memberSchema=z.object({...base,email:z.string().email().max(200).transform(s=>s.toLowerCase()),name:z.string().trim().min(1).max(100),role:z.enum(['admin','operator']),active:z.number().int().min(0).max(1).default(1)}).strict();
