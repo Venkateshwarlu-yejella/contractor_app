@@ -30,6 +30,8 @@ This is the first connected pilot. It has real server persistence and authorizat
 
 Node 24 is recommended because the tests use built-in TypeScript stripping and `node:sqlite`. The lockfile records the installed dependencies. The platform supplies D1, R2 and sign-in identity; no secrets belong in client code.
 
+Install Node.js 24 with npm first. The install and build commands below work in Windows PowerShell as well as Linux. Linux retains the existing Sites install and build helpers; Windows runs npm and Vinext directly with project-local caches and logs. Schema generation, lint and development scripts still use Bash.
+
 ```bash
 npm run install:ci
 npm run db:generate   # only after a schema edit
